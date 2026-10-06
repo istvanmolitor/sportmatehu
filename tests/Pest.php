@@ -48,3 +48,24 @@ function something()
 {
     // ..
 }
+
+/**
+ * Build a single repository entry shaped like the GitHub API response.
+ *
+ * @return array<string, mixed>
+ */
+function fakeGitHubRepo(int $id, string $name, int $stars = 1): array
+{
+    return [
+        'id' => $id,
+        'name' => $name,
+        'full_name' => "octocat/{$name}",
+        'description' => 'desc',
+        'html_url' => "https://github.com/octocat/{$name}",
+        'language' => 'PHP',
+        'stargazers_count' => $stars,
+        'open_issues_count' => 0,
+        'archived' => false,
+        'pushed_at' => '2026-01-01T00:00:00Z',
+    ];
+}
