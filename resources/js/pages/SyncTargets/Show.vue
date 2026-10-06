@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatDateTime } from '@/lib/date';
 import { index as syncTargetsIndex, show, sync } from '@/routes/sync-targets';
 import type {
     GithubRepositoryRow,
@@ -50,6 +51,18 @@ const search = ref(props.filters.search ?? '');
 const language = ref(props.filters.language ?? '');
 const sort = ref(props.filters.sort ?? 'github_updated_at');
 const direction = ref(props.filters.direction ?? 'desc');
+
+function paginationLabel(label: string): string {
+    if (label.includes('Previous')) {
+        return '« Előző';
+    }
+
+    if (label.includes('Next')) {
+        return 'Következő »';
+    }
+
+    return label;
+}
 
 function applyFilters() {
     router.get(
@@ -104,7 +117,7 @@ function applyFilters() {
             v-if="syncTarget.last_synced_at"
             class="text-sm text-muted-foreground"
         >
-            Utolsó sikeres szinkron: {{ syncTarget.last_synced_at }}
+            Utolsó sikeres szinkron: {{ formatDateTime(syncTarget.last_synced_at) }}
         </p>
         <p v-if="syncTarget.last_sync_error" class="text-sm text-destructive">
             Utolsó hiba: {{ syncTarget.last_sync_error }}
@@ -229,20 +242,24 @@ function applyFilters() {
                             {{ repository.open_issues_count }}
                         </td>
                         <td class="p-3 text-muted-foreground">
-                            {{ repository.github_updated_at ?? '-' }}
+                            {{ formatDateTime(repository.github_updated_at) }}
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <nav v-if="repositories.last_page > 1" class="flex flex-wrap gap-1">
+        <nav
+            v-if="repositories.last_page > 1"
+            class="flex flex-wrap items-center gap-1"
+        >
             <template v-for="(link, index) in repositories.links" :key="index">
                 <span
                     v-if="!link.url"
                     class="rounded-md px-3 py-1 text-sm text-muted-foreground"
-                    v-html="link.label"
-                />
+                >
+                    {{ paginationLabel(link.label) }}
+                </span>
                 <Link
                     v-else
                     :href="link.url"
@@ -254,8 +271,9 @@ function applyFilters() {
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-accent'
                     "
-                    v-html="link.label"
-                />
+                >
+                    {{ paginationLabel(link.label) }}
+                </Link>
             </template>
         </nav>
     </div>

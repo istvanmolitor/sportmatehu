@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatDateTime } from '@/lib/date';
 import { index as syncTargetsIndex, show, sync } from '@/routes/sync-targets';
 import type { SyncStatus, SyncTargetSummary } from '@/types';
 
@@ -147,7 +148,7 @@ const statusVariants: Record<
                             </Badge>
                         </td>
                         <td class="p-3 text-muted-foreground">
-                            {{ target.last_synced_at ?? '-' }}
+                            {{ formatDateTime(target.last_synced_at) }}
                         </td>
                         <td
                             class="max-w-xs truncate p-3 text-muted-foreground"
