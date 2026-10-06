@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
+import { Form, Head, Link, usePoll } from '@inertiajs/vue3';
+import { computed, watch } from 'vue';
 import SyncTargetController from '@/actions/App/Http/Controllers/SyncTargetController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -11,9 +12,23 @@ import { formatDateTime } from '@/lib/date';
 import { index as syncTargetsIndex, show, sync } from '@/routes/sync-targets';
 import type { SyncStatus, SyncTargetSummary } from '@/types';
 
-defineProps<{
+const props = defineProps<{
     syncTargets: SyncTargetSummary[];
 }>();
+
+const isSyncing = computed(() =>
+    props.syncTargets.some((target) => target.status === 'syncing'),
+);
+
+const { start, stop } = usePoll(
+    3000,
+    { only: ['syncTargets'] },
+    { autoStart: false },
+);
+
+watch(isSyncing, (syncing) => (syncing ? start() : stop()), {
+    immediate: true,
+});
 
 defineOptions({
     layout: {
@@ -165,7 +180,7 @@ const statusVariants: Record<
                             >
                                 Szinkronizálás indítása
                             </Button>
-                            <Button v-else size="sm" variant="outline" as-child>
+                            <Button v-else size="sm" variant="outline" :as-child="true">
                                 <Link :href="sync(target.id).url" method="post">
                                     Szinkronizálás indítása
                                 </Link>

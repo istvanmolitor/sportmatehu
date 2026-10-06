@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router, setLayoutProps } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, Link, router, setLayoutProps, usePoll } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,18 @@ const statusVariants: Record<
     success: 'secondary',
     failed: 'destructive',
 };
+
+const isSyncing = computed(() => props.syncTarget.status === 'syncing');
+
+const { start, stop } = usePoll(
+    3000,
+    { only: ['syncTarget'] },
+    { autoStart: false },
+);
+
+watch(isSyncing, (syncing) => (syncing ? start() : stop()), {
+    immediate: true,
+});
 
 const search = ref(props.filters.search ?? '');
 const language = ref(props.filters.language ?? '');
@@ -105,7 +117,7 @@ function applyFilters() {
                 >
                     Szinkronizálás indítása
                 </Button>
-                <Button v-else size="sm" variant="outline" as-child>
+                <Button v-else size="sm" variant="outline" :as-child="true">
                     <Link :href="sync(syncTarget.id).url" method="post">
                         Szinkronizálás indítása
                     </Link>
