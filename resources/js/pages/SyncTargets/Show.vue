@@ -117,7 +117,8 @@ function applyFilters() {
             v-if="syncTarget.last_synced_at"
             class="text-sm text-muted-foreground"
         >
-            Utolsó sikeres szinkron: {{ formatDateTime(syncTarget.last_synced_at) }}
+            Utolsó sikeres szinkron:
+            {{ formatDateTime(syncTarget.last_synced_at) }}
         </p>
         <p v-if="syncTarget.last_sync_error" class="text-sm text-destructive">
             Utolsó hiba: {{ syncTarget.last_sync_error }}

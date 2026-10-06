@@ -20,8 +20,7 @@ szinkronizálódik, függetlenül attól, hány Laravel felhasználó adta hozz�
 A láthatóságot egy **kapcsoló (pivot) tábla** (`sync_target_user`)
 határozza meg: ez köti össze, melyik Laravel felhasználóhoz melyik
 sync target tartozik, azaz kinek mi jelenik meg a listájában. Ez
-elkerüli a repó-adatok duplikált tárolását (l. 1. pont), ami a README
-3. pontjának ("prevent duplicates with an appropriate database
+elkerüli a repó-adatok duplikált tárolását (l. 1. pont), ami a README 3. pontjának ("prevent duplicates with an appropriate database
 constraint") szorosabb értelmezése.
 
 **Megfontolt, de elvetett alternatíva:** felmerült egy egyszerűbb,
@@ -48,15 +47,15 @@ pont).
 
 ### 1.1 `sync_targets` tábla (globális katalógus)
 
-| Oszlop | Típus | Megjegyzés |
-|---|---|---|
-| `id` | bigint pk | |
-| `name` | string | GitHub username vagy organization név |
-| `type` | string/enum (`user`, `organization`) | melyik GitHub API végpontot hívjuk |
-| `status` | string/enum (`pending`, `syncing`, `success`, `failed`) | szinkronizáció állapota |
-| `last_synced_at` | timestamp, nullable | utolsó **sikeres** szinkron időpontja |
-| `last_sync_error` | text, nullable | utolsó hiba üzenete (ember által olvasható, nem raw exception) |
-| `created_at`, `updated_at` | timestamp | |
+| Oszlop                     | Típus                                                   | Megjegyzés                                                     |
+| -------------------------- | ------------------------------------------------------- | -------------------------------------------------------------- |
+| `id`                       | bigint pk                                               |                                                                |
+| `name`                     | string                                                  | GitHub username vagy organization név                          |
+| `type`                     | string/enum (`user`, `organization`)                    | melyik GitHub API végpontot hívjuk                             |
+| `status`                   | string/enum (`pending`, `syncing`, `success`, `failed`) | szinkronizáció állapota                                        |
+| `last_synced_at`           | timestamp, nullable                                     | utolsó **sikeres** szinkron időpontja                          |
+| `last_sync_error`          | text, nullable                                          | utolsó hiba üzenete (ember által olvasható, nem raw exception) |
+| `created_at`, `updated_at` | timestamp                                               |                                                                |
 
 Nincs `user_id` oszlop ezen a táblán – a target nem egy userhez tartozik,
 hanem egy globálisan egyedi entitás ("ez a GitHub user/org, amit
@@ -74,12 +73,12 @@ unique index egyben indexként is szolgál.
 
 ### 1.2 `sync_target_user` tábla (kapcsoló/pivot tábla)
 
-| Oszlop | Típus | Megjegyzés |
-|---|---|---|
-| `id` | bigint pk | |
-| `user_id` | FK → `users.id`, `onDelete('cascade')` | melyik Laravel user adta hozzá |
-| `sync_target_id` | FK → `sync_targets.id`, `onDelete('cascade')` | melyik globális targetet |
-| `created_at`, `updated_at` | timestamp | mikor adta hozzá a user |
+| Oszlop                     | Típus                                         | Megjegyzés                     |
+| -------------------------- | --------------------------------------------- | ------------------------------ |
+| `id`                       | bigint pk                                     |                                |
+| `user_id`                  | FK → `users.id`, `onDelete('cascade')`        | melyik Laravel user adta hozzá |
+| `sync_target_id`           | FK → `sync_targets.id`, `onDelete('cascade')` | melyik globális targetet       |
+| `created_at`, `updated_at` | timestamp                                     | mikor adta hozzá a user        |
 
 Ez a tábla dönti el, **kinek mi jelenik meg**: egy user csak azokat a
 targeteket (és azok repóit) látja, amikhez saját maga hozzáadott egy sor
@@ -96,21 +95,21 @@ a unique indexen belül is elérhető, FK-k amúgy is indexelve vannak.
 
 ### 1.3 `repositories` tábla
 
-| Oszlop | Típus | Megjegyzés |
-|---|---|---|
-| `id` | bigint pk | |
-| `sync_target_id` | FK → `sync_targets.id`, `onDelete('cascade')` | |
-| `github_id` | bigint unsigned | GitHub oldali repo ID |
-| `name` | string | |
-| `full_name` | string | pl. `owner/repo` |
-| `description` | text, nullable | |
-| `url` | string | repo HTML URL |
-| `language` | string, nullable | fő nyelv |
-| `stargazers_count` | unsigned int | |
-| `open_issues_count` | unsigned int | |
-| `is_archived` | boolean | |
-| `github_updated_at` | timestamp | GitHub oldali `updated_at`/`pushed_at` |
-| `created_at`, `updated_at` | timestamp | lokális audit |
+| Oszlop                     | Típus                                         | Megjegyzés                             |
+| -------------------------- | --------------------------------------------- | -------------------------------------- |
+| `id`                       | bigint pk                                     |                                        |
+| `sync_target_id`           | FK → `sync_targets.id`, `onDelete('cascade')` |                                        |
+| `github_id`                | bigint unsigned                               | GitHub oldali repo ID                  |
+| `name`                     | string                                        |                                        |
+| `full_name`                | string                                        | pl. `owner/repo`                       |
+| `description`              | text, nullable                                |                                        |
+| `url`                      | string                                        | repo HTML URL                          |
+| `language`                 | string, nullable                              | fő nyelv                               |
+| `stargazers_count`         | unsigned int                                  |                                        |
+| `open_issues_count`        | unsigned int                                  |                                        |
+| `is_archived`              | boolean                                       |                                        |
+| `github_updated_at`        | timestamp                                     | GitHub oldali `updated_at`/`pushed_at` |
+| `created_at`, `updated_at` | timestamp                                     | lokális audit                          |
 
 **Egyediség:** unique constraint `(sync_target_id, github_id)` – mivel a
 `sync_target` maga is globálisan egyedi (1.1 pont), ez most **valódi,
@@ -119,6 +118,7 @@ szerepel a táblában, függetlenül attól, hány user követi a targetet.
 Upsert ez alapján történik (`updateOrCreate` / `upsert`).
 
 **Indexek:**
+
 - `(sync_target_id, github_id)` unique – ez a dedup kulcs.
 - `sync_target_id` (lista lekéréshez, FK index amúgy is létrejön).
 - `stargazers_count`, `open_issues_count`, `github_updated_at` – ezek a
@@ -179,33 +179,32 @@ másrészt a service-ek unit tesztjeit egyszerűbbé teszi (interfész
 mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
 
 - `app/Repositories/Contracts/SyncTargetRepositoryInterface.php`
-  - `allForUser(User $user): Collection` – a user pivot kapcsolatán
-    keresztül listázza a targetjeit.
-  - `find(int $id): ?SyncTarget` – egyszerű lekérdezés id alapján,
-    `null`, ha nincs ilyen sor. **Nem** dönt jogosultságról – ki
-    férhet hozzá az adott targethez, azt a `SyncTargetPolicy` dönti el
-    a controllerben, hogy a jogosultsági logika ne keveredjen az
-    adatelérési rétegbe.
-  - `findOrCreateAndAttachToUser(User $user, string $name, SyncTargetType $type): SyncTarget`
-    – megkeresi a globális targetet `(name, type)` alapján; ha nincs,
-    létrehozza; majd `firstOrCreate`-del felveszi a pivot sort a
-    userhez (ha még nincs). Ez a "hozzáadás" egyetlen belépési pontja.
-  - `markAsSyncing(SyncTarget $target): bool` – **atomi, feltételes
-    update**: egyetlen adatbázis-művelettel próbálja `syncing`-re
-    állítani a target sort, de **csak akkor**, ha annak jelenlegi
-    állapota még nem `syncing` (pl.
-    `SyncTarget::where('id', $target->id)->where('status', '!=',
-    SyncStatus::Syncing)->update(['status' => SyncStatus::Syncing])`
-    és a módosított sorok száma alapján `true`/`false`). Ez zárja ki,
-    hogy két egyidejű kérés közül mindkettő elindítsa a szinkront (l.
-    5. pont) – nem egy előzetes olvasás + utólagos írás, hanem
-    egyetlen oszthatatlan lépés.
-  - `markAsSynced(SyncTarget $target, Carbon $at): void`
-  - `markAsFailed(SyncTarget $target, string $error): void`
+    - `allForUser(User $user): Collection` – a user pivot kapcsolatán
+      keresztül listázza a targetjeit.
+    - `find(int $id): ?SyncTarget` – egyszerű lekérdezés id alapján,
+      `null`, ha nincs ilyen sor. **Nem** dönt jogosultságról – ki
+      férhet hozzá az adott targethez, azt a `SyncTargetPolicy` dönti el
+      a controllerben, hogy a jogosultsági logika ne keveredjen az
+      adatelérési rétegbe.
+    - `findOrCreateAndAttachToUser(User $user, string $name, SyncTargetType $type): SyncTarget`
+      – megkeresi a globális targetet `(name, type)` alapján; ha nincs,
+      létrehozza; majd `firstOrCreate`-del felveszi a pivot sort a
+      userhez (ha még nincs). Ez a "hozzáadás" egyetlen belépési pontja.
+    - `markAsSyncing(SyncTarget $target): bool` – **atomi, feltételes
+      update**: egyetlen adatbázis-művelettel próbálja `syncing`-re
+      állítani a target sort, de **csak akkor**, ha annak jelenlegi
+      állapota még nem `syncing` (pl.
+      `SyncTarget::where('id', $target->id)->where('status', '!=',
+SyncStatus::Syncing)->update(['status' => SyncStatus::Syncing])`
+      és a módosított sorok száma alapján `true`/`false`). Ez zárja ki,
+      hogy két egyidejű kérés közül mindkettő elindítsa a szinkront (l. 5. pont) – nem egy előzetes olvasás + utólagos írás, hanem
+      egyetlen oszthatatlan lépés.
+    - `markAsSynced(SyncTarget $target, Carbon $at): void`
+    - `markAsFailed(SyncTarget $target, string $error): void`
 - `app/Repositories/Contracts/GithubRepositoryRepositoryInterface.php`
-  - `paginateForTarget(SyncTarget $target, array $filters): LengthAwarePaginator`
-    (ez implementálja a keresést/szűrést/rendezést/lapozást egy helyen)
-  - `upsertMany(SyncTarget $target, array $githubRepositoryDataList): void`
+    - `paginateForTarget(SyncTarget $target, array $filters): LengthAwarePaginator`
+      (ez implementálja a keresést/szűrést/rendezést/lapozást egy helyen)
+    - `upsertMany(SyncTarget $target, array $githubRepositoryDataList): void`
 - Implementációk: `app/Repositories/EloquentSyncTargetRepository.php`,
   `app/Repositories/EloquentGithubRepositoryRepository.php` – ezek
   tartalmazzák a tényleges Eloquent/query builder hívásokat, és az 1.4
@@ -213,7 +212,7 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
 - Bindolás: `App\Providers\RepositoryServiceProvider` (vagy a meglévő
   `AppServiceProvider`-ben) köti össze az interfészeket a konkrét
   implementációkkal (`$this->app->bind(SyncTargetRepositoryInterface::class,
-  EloquentSyncTargetRepository::class)`), így a controllerek/service-ek
+EloquentSyncTargetRepository::class)`), így a controllerek/service-ek
   mindig az interfészt kapják dependency injectionnel.
 - A `RepositorySynchronizer` (l. 4. pont) és a controllerek (l. 6. pont)
   csak ezeket az interfészeket ismerik, az `App\Models\*` Eloquent
@@ -225,24 +224,24 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
 
 - `app/Services/GitHub/GitHubClient.php` – dedikált kliens osztály, ami a
   Laravel `Http` facade-ot használja, felelős:
-  - `getRepositoriesFor(SyncTarget $target): Generator|array` – a
-    megfelelő végpont hívása (`/users/{user}/repos` vagy
-    `/orgs/{org}/repos`) a `type` alapján.
-  - Pagination kezelése (`per_page=100`, `page` növelése amíg van
-    következő oldal / `Link` header `rel="next"` figyelése) – a teljes
-    többoldalas bejárás megvalósítása a célunk, a kódban a ciklus
-    eleve erre készül.
-  - Hibakezelés: 404 (nincs ilyen user/org), 403/rate limit, 5xx, timeout
-    – ezeket dedikált exception típusokra fordítjuk le
-    (`GitHubTargetNotFoundException`, `GitHubRateLimitException`,
-    `GitHubApiException`), amiket a hívó kód (sync service) elkap és
-    emberi hibaüzenetre fordít.
-  - `GitHubRateLimitException` a GitHub válasz `Retry-After` (vagy
-    `X-RateLimit-Reset`) headerét is átadja, hogy a logban/hibaüzenetben
-    szerepeljen, mikor érdemes újra próbálkozni – maga az automatikus
-    újrapróbálkozás a job retry/backoff jegyzet szintű része (l. 5. pont).
-  - Opcionális `GITHUB_TOKEN` env változó használata (hitelesített hívás
-    nagyobb rate limit-tel) – ha nincs beállítva, anonim hívás megy.
+    - `getRepositoriesFor(SyncTarget $target): Generator|array` – a
+      megfelelő végpont hívása (`/users/{user}/repos` vagy
+      `/orgs/{org}/repos`) a `type` alapján.
+    - Pagination kezelése (`per_page=100`, `page` növelése amíg van
+      következő oldal / `Link` header `rel="next"` figyelése) – a teljes
+      többoldalas bejárás megvalósítása a célunk, a kódban a ciklus
+      eleve erre készül.
+    - Hibakezelés: 404 (nincs ilyen user/org), 403/rate limit, 5xx, timeout
+      – ezeket dedikált exception típusokra fordítjuk le
+      (`GitHubTargetNotFoundException`, `GitHubRateLimitException`,
+      `GitHubApiException`), amiket a hívó kód (sync service) elkap és
+      emberi hibaüzenetre fordít.
+    - `GitHubRateLimitException` a GitHub válasz `Retry-After` (vagy
+      `X-RateLimit-Reset`) headerét is átadja, hogy a logban/hibaüzenetben
+      szerepeljen, mikor érdemes újra próbálkozni – maga az automatikus
+      újrapróbálkozás a job retry/backoff jegyzet szintű része (l. 5. pont).
+    - Opcionális `GITHUB_TOKEN` env változó használata (hitelesített hívás
+      nagyobb rate limit-tel) – ha nincs beállítva, anonim hívás megy.
 - `config/services.php`-ba felvesszük a `github` kulcsot
   (`base_url`, `token`), és a `.env.example`-t kiegészítjük a
   `GITHUB_TOKEN=` sorral (üresen hagyva, hogy jelezze: opcionális).
@@ -262,33 +261,33 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
   interfészeket kapja konstruktorban (nem Eloquent modelleket). Mivel a
   `sync_targets` globális, a synchronizer sosem user-specifikus – egy
   targetet szinkronizál, függetlenül attól, hányan követik:
-  1. Lekéri a repókat a `GitHubClient`-en keresztül (ez egy külső HTTP
-     hívás, **tranzakción kívül** történik – l. lejjebb a tranzakció-
-     határokról szóló jegyzetet).
-  2. A DTO listát a `GithubRepositoryRepositoryInterface::upsertMany()`
-     hívásra adja át (a `sync_target_id` + `github_id` kulcs alapján
-     upsertel), majd a `SyncTargetRepositoryInterface::markAsSynced()`
-     hívással frissíti a target állapotát. Ez a két lépés **egy közös
-     adatbázis-tranzakción belül** fut (`DB::transaction(function () {
-     ... })`), hogy a repók mentése és a target "sikeres" állapotba
-     állítása együtt sikerüljön vagy együtt bukjon el – ha a folyamat a
-     kettő között szakadna meg, a tranzakció visszagördül, és a target
-     állapota a következő próbálkozásig a korábbi (`syncing`) marad,
-     nem áll elő olyan állapot, hogy a repók már frissültek, de a
-     target state-je nem.
-  3. Hiba esetén elkapja a GitHub kliens exceptionjeit, logolja
-     (`Log::error` kontextussal: target id, GitHub hívás, HTTP status),
-     és a usernek szánt rövid, érthető hibaszöveget ment el
-     `markAsFailed()`-en keresztül. Ez egyetlen sor update, nem igényel
-     külön tranzakciót.
-  - A `markAsSyncing()` (a job legelső lépése, l. 5. pont) **nem** része
-    ennek a tranzakciónak: az egy önálló, atomi feltételes update (l. 2.
-    pont), aminek pontosan az a célja, hogy a GitHub-hívás *előtt*,
-    külön lépésben, azonnal commitolódjon – így más kérések rögtön
-    látják a `syncing` állapotot, amíg a (hosszabb ideig tartó) GitHub
-    hívás folyik. Tudatosan nem tartjuk nyitva a tranzakciót a teljes
-    GitHub HTTP hívás idejére: egy külső hálózati hívást tranzakción
-    belül tartani feleslegesen hosszan zárolná az érintett sorokat.
+    1. Lekéri a repókat a `GitHubClient`-en keresztül (ez egy külső HTTP
+       hívás, **tranzakción kívül** történik – l. lejjebb a tranzakció-
+       határokról szóló jegyzetet).
+    2. A DTO listát a `GithubRepositoryRepositoryInterface::upsertMany()`
+       hívásra adja át (a `sync_target_id` + `github_id` kulcs alapján
+       upsertel), majd a `SyncTargetRepositoryInterface::markAsSynced()`
+       hívással frissíti a target állapotát. Ez a két lépés **egy közös
+       adatbázis-tranzakción belül** fut (`DB::transaction(function () {
+... })`), hogy a repók mentése és a target "sikeres" állapotba
+       állítása együtt sikerüljön vagy együtt bukjon el – ha a folyamat a
+       kettő között szakadna meg, a tranzakció visszagördül, és a target
+       állapota a következő próbálkozásig a korábbi (`syncing`) marad,
+       nem áll elő olyan állapot, hogy a repók már frissültek, de a
+       target state-je nem.
+    3. Hiba esetén elkapja a GitHub kliens exceptionjeit, logolja
+       (`Log::error` kontextussal: target id, GitHub hívás, HTTP status),
+       és a usernek szánt rövid, érthető hibaszöveget ment el
+       `markAsFailed()`-en keresztül. Ez egyetlen sor update, nem igényel
+       külön tranzakciót.
+    - A `markAsSyncing()` (a job legelső lépése, l. 5. pont) **nem** része
+      ennek a tranzakciónak: az egy önálló, atomi feltételes update (l. 2.
+      pont), aminek pontosan az a célja, hogy a GitHub-hívás _előtt_,
+      külön lépésben, azonnal commitolódjon – így más kérések rögtön
+      látják a `syncing` állapotot, amíg a (hosszabb ideig tartó) GitHub
+      hívás folyik. Tudatosan nem tartjuk nyitva a tranzakciót a teljes
+      GitHub HTTP hívás idejére: egy külső hálózati hívást tranzakción
+      belül tartani feleslegesen hosszan zárolná az érintett sorokat.
 - Ez a réteg controller- és job-független, és mivel csak interfészeket
   ismer, unit tesztelhető úgy is, hogy a repository interfészeket
   mockoljuk (nincs szükség valódi DB-re a tiszta logika teszteléséhez),
@@ -301,12 +300,12 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
 - `app/Jobs/SyncRepositoriesJob.php` – implementálja
   `ShouldQueue`, kap egy `SyncTarget $target`-et (vagy ID-t, hogy mindig
   friss modellt töltsünk be).
-  - A job indulásakor a `RepositorySynchronizer`-en keresztül
-    `syncing`-ra állítja a targetet.
-  - Meghívja a `RepositorySynchronizer`-t.
-  - Siker/hiba esetén frissíti a target állapotát (ezt már a
-    synchronizer is megteheti, de a job felel a `syncing` állapotért és
-    a végső commit/rollback-ért).
+    - A job indulásakor a `RepositorySynchronizer`-en keresztül
+      `syncing`-ra állítja a targetet.
+    - Meghívja a `RepositorySynchronizer`-t.
+    - Siker/hiba esetén frissíti a target állapotát (ezt már a
+      synchronizer is megteheti, de a job felel a `syncing` állapotért és
+      a végső commit/rollback-ért).
 - **Duplikált kérés elutasítása – atomi megoldás:**
   mivel egy targetet több user is követhet, jóval valószínűbb, hogy két
   user (egymástól függetlenül) **egyszerre** indít szinkront ugyanarra
@@ -325,15 +324,15 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
   kikényszerítve, nem a PHP kód két külön lépésének sorrendjében.
 - **Dedikált megjegyzések (nem feltétlen implementáció, kommentben/README-ben
   kifejtve, a feladat ezt is engedi):**
-  - *Job szintű dedup/overlap*: `ShouldBeUnique` + `WithoutOverlapping`
-    middleware (`uniqueId()` = target ID), hogy a queue worker szinten
-    is garantált legyen, hogy egy targetre egyszerre csak egy job fusson
-    (a controller szintű elutasítás mellett, védőhálóként).
-  - *Retry/failed jobs*: `$tries`, `backoff()` beállítás, `failed()`
-    hook, ami a target-et `failed` állapotba teszi és elmenti a hibát;
-    `failed_jobs` tábla már megvan a starter kitből.
-  - *Timeout*: `$timeout` property a job-on + GitHub HTTP kliensen
-    `Http::timeout()`.
+    - _Job szintű dedup/overlap_: `ShouldBeUnique` + `WithoutOverlapping`
+      middleware (`uniqueId()` = target ID), hogy a queue worker szinten
+      is garantált legyen, hogy egy targetre egyszerre csak egy job fusson
+      (a controller szintű elutasítás mellett, védőhálóként).
+    - _Retry/failed jobs_: `$tries`, `backoff()` beállítás, `failed()`
+      hook, ami a target-et `failed` állapotba teszi és elmenti a hibát;
+      `failed_jobs` tábla már megvan a starter kitből.
+    - _Timeout_: `$timeout` property a job-on + GitHub HTTP kliensen
+      `Http::timeout()`.
 - Baseline-ban tényleg implementáljuk: a job léte, státuszváltás,
   hibakezelés, a fent leírt **atomi** duplikált kérés elutasítása (nem
   csak egy felületes, két lépéses ellenőrzés), teszt
@@ -349,21 +348,21 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
 
 - `routes/web.php`-ba egy `sync-targets` resource-szerű csoport,
   `auth`+`verified` middleware alatt:
-  - `GET /sync-targets` → lista (Inertia page, a bejelentkezett user
-    által hozzáadott targetek + stat badge-ek)
-  - `POST /sync-targets` → target hozzáadása a bejelentkezett userhez
-    (validáció: `name` kötelező, `type` `in:user,organization`; ha a
-    target már létezik globálisan, csak a pivot sor jön létre, nem új
-    `sync_targets` sor – l. 2. pont `findOrCreateAndAttachToUser`)
-  - `POST /sync-targets/{syncTarget}/sync` → `SyncRepositoriesJob`
-    dispatch-elése (+ korai elutasítás, ha már `syncing`)
-  - `GET /sync-targets/{syncTarget}` → a target repói (kereséssel,
-    szűréssel, rendezéssel, paginálva) – az adat ugyanaz minden usernek,
-    aki követi a targetet.
+    - `GET /sync-targets` → lista (Inertia page, a bejelentkezett user
+      által hozzáadott targetek + stat badge-ek)
+    - `POST /sync-targets` → target hozzáadása a bejelentkezett userhez
+      (validáció: `name` kötelező, `type` `in:user,organization`; ha a
+      target már létezik globálisan, csak a pivot sor jön létre, nem új
+      `sync_targets` sor – l. 2. pont `findOrCreateAndAttachToUser`)
+    - `POST /sync-targets/{syncTarget}/sync` → `SyncRepositoriesJob`
+      dispatch-elése (+ korai elutasítás, ha már `syncing`)
+    - `GET /sync-targets/{syncTarget}` → a target repói (kereséssel,
+      szűréssel, rendezéssel, paginálva) – az adat ugyanaz minden usernek,
+      aki követi a targetet.
 - **Jogosultság – egységesen Policy-val:**
   `App\Policies\SyncTargetPolicy` felel minden hozzáférési döntésért,
   nem az adatelérési réteg. A policy `view(User $user, SyncTarget
-  $target)` metódusa azt ellenőrzi, hogy a usernek van-e pivot sora
+$target)` metódusa azt ellenőrzi, hogy a usernek van-e pivot sora
   (`sync_target_user`) az adott targetre. A policy a beépített Laravel
   `AuthServiceProvider`-ben regisztrálva van a `SyncTarget` modellhez,
   így a controllerekben `$this->authorize('view', $syncTarget)`
@@ -376,17 +375,17 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
   injectionnel, sosem az Eloquent modelleket közvetlenül; a
   jogosultságot mindig a fenti `SyncTargetPolicy`-n keresztül
   ellenőrzik, mielőtt a repository metódusait hívnák:
-  - `App\Http\Controllers\SyncTargetController` (`index`, `store`,
-    `show`) – `SyncTargetRepositoryInterface::allForUser()` /
-    `::find()` / `::findOrCreateAndAttachToUser()` hívásokkal
-    dolgozik (a `show`/`sync` útvonalakon előbb `authorize('view', ...)`
-    fut a betöltött target modellen), és a `show`-ban a
-    `GithubRepositoryRepositoryInterface::paginateForTarget()`-et hívja
-    a kereséshez/szűréshez/rendezéshez/lapozáshoz.
-  - `App\Http\Controllers\SyncTargetSyncController` (`store` – a sync
-    indítása, hogy a "szinkronizálás indítása" ne keveredjen a CRUD
-    controllerbe; itt is `authorize('view', $syncTarget)` fut a job
-    dispatch előtt)
+    - `App\Http\Controllers\SyncTargetController` (`index`, `store`,
+      `show`) – `SyncTargetRepositoryInterface::allForUser()` /
+      `::find()` / `::findOrCreateAndAttachToUser()` hívásokkal
+      dolgozik (a `show`/`sync` útvonalakon előbb `authorize('view', ...)`
+      fut a betöltött target modellen), és a `show`-ban a
+      `GithubRepositoryRepositoryInterface::paginateForTarget()`-et hívja
+      a kereséshez/szűréshez/rendezéshez/lapozáshoz.
+    - `App\Http\Controllers\SyncTargetSyncController` (`store` – a sync
+      indítása, hogy a "szinkronizálás indítása" ne keveredjen a CRUD
+      controllerbe; itt is `authorize('view', $syncTarget)` fut a job
+      dispatch előtt)
 - `App\Http\Requests\StoreSyncTargetRequest` – validáció; az "egyediség"
   itt azt jelenti, hogy **a bejelentkezett user** még nem adta hozzá ezt
   a `(name, type)` targetet (a pivot táblán nézve), nem azt, hogy a
@@ -398,30 +397,30 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
 ## 7. Inertia + Vue felület
 
 - `resources/js/pages/SyncTargets/Index.vue`
-  - Targetek listája kártya/táblázat formában: név, típus, státusz badge,
-    utolsó sikeres szinkron ideje, utolsó hiba (ha van, röviden
-    kiírva/tooltipben).
-  - "Új target hozzáadása" form: `name` input + `type` explicit választó
-    (radio vagy select: "Felhasználó" / "Organizáció") – `useForm` +
-    Wayfinder-generált route hívás. Nincs automatikus detektálás, a
-    felhasználó dönti el, melyik GitHub API végpontot hívjuk.
-  - "Szinkronizálás indítása" gomb minden targetnél (disabled, ha már
-    `syncing`), toast visszajelzéssel (`vue-sonner`, ami már telepítve
-    van).
-  - Kattintásra a target soron → navigáció a repó listához.
+    - Targetek listája kártya/táblázat formában: név, típus, státusz badge,
+      utolsó sikeres szinkron ideje, utolsó hiba (ha van, röviden
+      kiírva/tooltipben).
+    - "Új target hozzáadása" form: `name` input + `type` explicit választó
+      (radio vagy select: "Felhasználó" / "Organizáció") – `useForm` +
+      Wayfinder-generált route hívás. Nincs automatikus detektálás, a
+      felhasználó dönti el, melyik GitHub API végpontot hívjuk.
+    - "Szinkronizálás indítása" gomb minden targetnél (disabled, ha már
+      `syncing`), toast visszajelzéssel (`vue-sonner`, ami már telepítve
+      van).
+    - Kattintásra a target soron → navigáció a repó listához.
 - `resources/js/pages/SyncTargets/Show.vue`
-  - Adott target repóinak táblázata: name, description, language, stars,
-    open issues, GitHub last updated.
-  - Lapozás: backend oldali Laravel `paginate()` + Inertia pagination
-    komponens (query stringben `?page=`), nem a teljes lista egy
-    lapon – ez a query-szintű gondolkodást is jól mutatja.
-  - Legalább két keresési/szűrési/rendezési lehetőség, pl.:
-    1. Szabad szöveges keresés név/leírás alapján (`?search=`)
-    2. Rendezés (`?sort=stargazers_count|open_issues_count|github_updated_at`, `&direction=`)
-    3. (opcionális) nyelv szerinti szűrés select-ből
-  - A szűrés/rendezés backend oldali query string alapján (Inertia GET
-    + `preserveState`), nem kliens oldali csak-JS szűrés, hogy nagyobb
-    adatmennyiségnél is működjön.
+    - Adott target repóinak táblázata: name, description, language, stars,
+      open issues, GitHub last updated.
+    - Lapozás: backend oldali Laravel `paginate()` + Inertia pagination
+      komponens (query stringben `?page=`), nem a teljes lista egy
+      lapon – ez a query-szintű gondolkodást is jól mutatja.
+    - Legalább két keresési/szűrési/rendezési lehetőség, pl.:
+        1. Szabad szöveges keresés név/leírás alapján (`?search=`)
+        2. Rendezés (`?sort=stargazers_count|open_issues_count|github_updated_at`, `&direction=`)
+        3. (opcionális) nyelv szerinti szűrés select-ből
+    - A szűrés/rendezés backend oldali query string alapján (Inertia GET
+        - `preserveState`), nem kliens oldali csak-JS szűrés, hogy nagyobb
+          adatmennyiségnél is működjön.
 - Navigáció: a sidebare felvesszük a "Sync targets" menüpontot a meglévő
   `AppSidebarLayout` mintájára.
 
@@ -456,8 +455,9 @@ alapértelmezett adatokkal (`github_id`, `stargazers_count`, stb.), hogy a
 tesztekben ne kelljen minden mezőt kézzel felsorolni.
 
 **Teljesen megírt tesztek:**
+
 1. `SyncTargetTest` – sync target hozzáadása (validáció + sikeres mentés
-   + a saját targetjei közti egyediség a pivot táblán).
+    - a saját targetjei közti egyediség a pivot táblán).
 2. `RepositorySynchronizerTest` (vagy feature teszt a job-on) –
    `Http::fake()` egy rögzített GitHub JSON válasszal, ellenőrzi hogy a
    repók bekerülnek a DB-be a megfelelő mezőkkel, és a target státusza/
@@ -479,6 +479,7 @@ implementációkkal futnak, hogy az egyediség constraintet is lefedjék.
 
 **Placeholder tesztek (névvel, `test()->todo()` vagy `markTestIncomplete`)**, a
 README által is javasolt listát követve:
+
 - GitHub API hiba (404 user not found, 403 rate limit, 5xx) kezelése
 - Pagination – több oldal bejárása
 - Job retry / failed job viselkedés
@@ -516,52 +517,52 @@ következő lépésre mennénk.
    `create_repositories_table`, `SyncTarget`, `GithubRepository`,
    `SyncTargetType`, `SyncStatus` enumok, `SyncTargetFactory`,
    `GithubRepositoryFactory`.
-   *Kész, ha:* `php artisan migrate:fresh` hibátlanul lefut, és a
+   _Kész, ha:_ `php artisan migrate:fresh` hibátlanul lefut, és a
    factory-kkal létrehozott rekordok mentése/relációi (`users()`,
    `repositories()`, `syncTarget()`) tinker/teszt szinten működnek.
 
 2. **Adatelérési réteg** (l. 2. pont) – interfészek,
    `EloquentSyncTargetRepository`, `EloquentGithubRepositoryRepository`,
    `RepositoryServiceProvider` binding.
-   *Kész, ha:* egy gyors unit teszt mock interfésszel lefut, és a
+   _Kész, ha:_ egy gyors unit teszt mock interfésszel lefut, és a
    `markAsSyncing()` atomi update logikáját lefedő teszt zöld (két
    egymás utáni hívás közül csak az első ad `true`-t).
 
 3. **GitHub kliens + DTO + config** (l. 3. pont) – `GitHubClient`,
    `GitHubRepositoryData` DTO, `config/services.php`, `.env.example`
    `GITHUB_TOKEN` bejegyzés, dedikált exception osztályok.
-   *Kész, ha:* `Http::fake()`-es teszt igazolja, hogy a kliens helyesen
+   _Kész, ha:_ `Http::fake()`-es teszt igazolja, hogy a kliens helyesen
    hívja a `/users/{user}/repos` vagy `/orgs/{org}/repos` végpontot, és
    a 404/403/5xx válaszokra a megfelelő exception dobódik.
 
 4. **`RepositorySynchronizer`** (l. 4. pont) – DTO-k mentése
    `upsertMany()`-n keresztül, `markAsSynced`/`markAsFailed`,
    tranzakció-határ.
-   *Kész, ha:* a 9. pont 2. és 3. baseline tesztje (sikeres szinkron +
+   _Kész, ha:_ a 9. pont 2. és 3. baseline tesztje (sikeres szinkron +
    duplikátum-mentes upsert) zöld.
 
 5. **`SyncRepositoriesJob`** (l. 5. pont) – dispatch, `syncing` állapot
    kezelése, hiba esetén `markAsFailed`.
-   *Kész, ha:* `Queue::fake()`-es teszt igazolja, hogy a job
+   _Kész, ha:_ `Queue::fake()`-es teszt igazolja, hogy a job
    dispatchelődik, és egy sikertelen GitHub hívás esetén a target
    `failed` állapotba kerül a hibaüzenettel.
 
 6. **Route-ok, Request, Policy, Controllerek** (l. 6. pont) –
    `StoreSyncTargetRequest`, `SyncTargetPolicy`,
    `SyncTargetController`, `SyncTargetSyncController`, `routes/web.php`.
-   *Kész, ha:* `php artisan route:list` mutatja az új route-okat, és egy
+   _Kész, ha:_ `php artisan route:list` mutatja az új route-okat, és egy
    feature teszt igazolja a 403-at idegen target elérésekor, illetve a
    duplikált sync-indítás elutasítását.
 
 7. **Vue oldalak** (l. 7. pont) – `SyncTargets/Index.vue`,
    `SyncTargets/Show.vue`, sidebar menüpont, Wayfinder route hívások.
-   *Kész, ha:* manuálisan kipróbálva (böngészőben) végigvihető a teljes
+   _Kész, ha:_ manuálisan kipróbálva (böngészőben) végigvihető a teljes
    flow: target hozzáadása → sync indítása → repólista megjelenik
    kereséssel/rendezéssel.
 
 8. **Hibakezelés/logging finomítás** (l. 8. pont) – ha bármelyik
    korábbi lépésben csak jegyzet szinten maradt.
-   *Kész, ha:* egy szándékosan hibás GitHub hívás (pl. nem létező user)
+   _Kész, ha:_ egy szándékosan hibás GitHub hívás (pl. nem létező user)
    végigfut a UI-ig, és a felhasználó a `last_sync_error` szöveget
    látja, nem nyers exceptiont.
 

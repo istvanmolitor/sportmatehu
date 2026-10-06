@@ -111,15 +111,15 @@ If you did not use AI, state that in the file. We will ask you about the code du
 
 Once the baseline works, pick whichever of these you think are worth spending the remaining time on. We do not expect you to complete all of them.
 
-| Area                              | Possible scope                                                                                                                     |
-|-----------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| Scheduled synchronization         | Add a scheduled command or job that synchronizes existing targets on a fixed interval chosen by you. Briefly explain the interval. |
-| REST API                          | Expose target and repository data for a hypothetical mobile application, with consistent responses and appropriate status codes.   |
-| Pagination                        | Handle pagination in the GitHub API and explain how the sync processes all repository pages.                                         |
-| README full-text search            | Store repository README content and let users search repository READMEs by text.                                                     |
-| Simple multitenancy                | Scope synchronization targets and repositories to users so each user sees only their own data.                                        |
-| Reconciliation                    | Define or implement how repositories no longer returned by GitHub are treated.                                                     |
-| Reliability and tests             | Improve error handling, logging, retry behavior, overlap protection, or automated test coverage.                                   |
+| Area                      | Possible scope                                                                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Scheduled synchronization | Add a scheduled command or job that synchronizes existing targets on a fixed interval chosen by you. Briefly explain the interval. |
+| REST API                  | Expose target and repository data for a hypothetical mobile application, with consistent responses and appropriate status codes.   |
+| Pagination                | Handle pagination in the GitHub API and explain how the sync processes all repository pages.                                       |
+| README full-text search   | Store repository README content and let users search repository READMEs by text.                                                   |
+| Simple multitenancy       | Scope synchronization targets and repositories to users so each user sees only their own data.                                     |
+| Reconciliation            | Define or implement how repositories no longer returned by GitHub are treated.                                                     |
+| Reliability and tests     | Improve error handling, logging, retry behavior, overlap protection, or automated test coverage.                                   |
 
 Pick the things you think add the most value.
 
