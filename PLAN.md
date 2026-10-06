@@ -1,8 +1,8 @@
 # Terv – GitHub repository szinkronizáló (SportMate felvételi feladat)
 
-> Ez egy közösen szerkesztett munkaterv. A pontok közül bármelyiket pontosíthatjuk,
-> átsorolhatjuk "ha marad idő" alá, vagy törölhetjük – a cél, hogy a tényleges
-> kódolás előtt lépésről lépésre végigbeszéljük a megközelítést.
+> Ez egy közösen szerkesztett munkaterv. A pontok közül bármelyiket pontosíthatjuk
+> vagy törölhetjük – a cél, hogy a tényleges kódolás előtt lépésről lépésre
+> végigbeszéljük a megközelítést.
 
 ## 0. Kiinduló állapot (már megvan)
 
@@ -35,11 +35,7 @@ megosztva szerepelnének. Mivel a cél kifejezetten az, hogy a README 3.
 pontjának dedup-elvárását a lehető legszorosabban értelmezzük, és a
 globális katalógus jobban bemutatja az adatmodellezési és
 versenyhelyzet-kezelési képességeket, **a globális katalógus + pivot
-tábla megoldás mellett döntöttünk** – ezt a döntést tudatosan vállaljuk
-annak ellenére, hogy ez több fejlesztési időt igényel, mint az
-egyszerűbb alternatíva. A kapcsolódó időigény-kockázatot szem előtt
-tartjuk, és ha a fejlesztés közben kiderül, hogy ez veszélyezteti a
-baseline határidőt, ezen a ponton visszatérünk az egyszerűbb modellre.
+tábla megoldás mellett döntöttünk**.
 
 **Döntés:** a fejlesztés a repository pattern-t követi – a controllerek és
 service-ek sosem hívnak közvetlenül Eloquent query-t, mindig egy dedikált
@@ -233,19 +229,23 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
     megfelelő végpont hívása (`/users/{user}/repos` vagy
     `/orgs/{org}/repos`) a `type` alapján.
   - Pagination kezelése (`per_page=100`, `page` növelése amíg van
-    következő oldal / `Link` header `rel="next"` figyelése). Baseline-ban
-    legalább **egy oldalig** biztosan működik, a többoldalas bejárás a
-    "ha marad időben" listában van kiemelve (README is ezt engedi), de a
-    kódban már előkészítjük a ciklust, hogy ne kelljen újraírni.
+    következő oldal / `Link` header `rel="next"` figyelése) – a teljes
+    többoldalas bejárás megvalósítása a célunk, a kódban a ciklus
+    eleve erre készül.
   - Hibakezelés: 404 (nincs ilyen user/org), 403/rate limit, 5xx, timeout
     – ezeket dedikált exception típusokra fordítjuk le
     (`GitHubTargetNotFoundException`, `GitHubRateLimitException`,
     `GitHubApiException`), amiket a hívó kód (sync service) elkap és
     emberi hibaüzenetre fordít.
+  - `GitHubRateLimitException` a GitHub válasz `Retry-After` (vagy
+    `X-RateLimit-Reset`) headerét is átadja, hogy a logban/hibaüzenetben
+    szerepeljen, mikor érdemes újra próbálkozni – maga az automatikus
+    újrapróbálkozás a job retry/backoff jegyzet szintű része (l. 5. pont).
   - Opcionális `GITHUB_TOKEN` env változó használata (hitelesített hívás
     nagyobb rate limit-tel) – ha nincs beállítva, anonim hívás megy.
 - `config/services.php`-ba felvesszük a `github` kulcsot
-  (`base_url`, `token`).
+  (`base_url`, `token`), és a `.env.example`-t kiegészítjük a
+  `GITHUB_TOKEN=` sorral (üresen hagyva, hogy jelezze: opcionális).
 - A kliens **nem** tud semmit a lokális modellekről – tiszta határ a
   külső API és az app között (ezért van rá külön DTO, l. 4. pont).
 
@@ -438,10 +438,22 @@ mockolható, nem kell valódi DB-t ütni, ha csak a logikát teszteljük).
   (nem a globális Laravel error page-en).
 - Validációs hibák a sima Inertia/Fortify form error flow-n mennek
   (már van rá minta a `settings` oldalakon).
+- **Cache invalidáció:** a baseline-ban nincs cache a target/repó
+  listázásnál (a `CACHE_STORE=database` csak a Laravel beépített
+  mechanizmusaihoz – pl. session – van jelen), így a follow-up hívásban
+  erről elmondjuk, hogy nincs mit invalidálni, de ha a listázás
+  cache-elve lenne (pl. gyakori repó-listák), a `upsertMany()` utáni
+  `Cache::forget()`/tag-alapú invalidáció lenne a belépési pont – ezt
+  jegyzet szinten a NOTES-ba is felvesszük.
 
 ---
 
 ## 9. Tesztelés terve (Pest)
+
+**Factory-k** (a tesztek előfeltétele): `SyncTargetFactory`,
+`GithubRepositoryFactory` – utóbbi a GitHub JSON mezőknek megfelelő
+alapértelmezett adatokkal (`github_id`, `stargazers_count`, stb.), hogy a
+tesztekben ne kelljen minden mezőt kézzel felsorolni.
 
 **Teljesen megírt tesztek:**
 1. `SyncTargetTest` – sync target hozzáadása (validáció + sikeres mentés
@@ -470,52 +482,16 @@ README által is javasolt listát követve:
 - GitHub API hiba (404 user not found, 403 rate limit, 5xx) kezelése
 - Pagination – több oldal bejárása
 - Job retry / failed job viselkedés
-- Ütemezett szinkronizáció (ha megvalósítjuk, l. 10. pont)
+- Ütemezett szinkronizáció
 - Hiányzó/törölt repository kezelése (reconciliation)
-- Cache invalidáció (ha lesz cache a listázásnál)
+- Cache invalidáció (l. 8. pont)
 - Érvénytelen GitHub target (pl. speciális karakterek, túl hosszú név)
 - Két user egyidejű "hozzáadása" ugyanarra a targetre (race condition az
   1.4 pontban leírt `firstOrCreate` retry logikára)
 
 ---
 
-## 10. "Ha marad idő" – rangsorolt lista
-
-A README 7 extra pontot ad; nem mindet tervezzük megvalósítani. Javasolt
-sorrend (idő/érték arány alapján), de ezt együtt pontosítjuk:
-
-1. **Megbízhatóság és tesztek bővítése** – a legjobb arány, ha már megvan
-   a baseline (job szintű overlap protection, retry teszt, részletesebb
-   hibakezelés).
-2. **Ütemezett szinkronizáció** – `routes/console.php`-ban egy
-   `Schedule::job(...)->hourly()` (vagy a kiválasztott intervallum,
-   indoklással: pl. óránta, hogy ne terheljük a GitHub rate limitet, de a
-   adat ne legyen órákig friss nélkül) – minden `success`/`failed`
-   állapotú globális targetre (egyszer, nem userenként).
-3. **Pagination teljes megvalósítása** – a kliensben már előkészített
-   ciklus kiegészítése, teszt több oldalas fake response-szal.
-4. **REST API** – `routes/api.php` + API Resource osztályok
-   (`SyncTargetResource`, `RepositoryResource`), Sanctum token auth,
-   konzisztens JSON válaszok és státuszkódok (a userre szűrés itt is a
-   pivot kapcsolaton keresztül történik).
-5. **README full-text keresés** – új `readme` text oszlop a
-   `repositories` táblán, külön job/endpoint a README letöltésére, LIKE
-   alapú keresés baseline-ban.
-6. **Reconciliation** – a legkevésbé kritikus; valószínűleg csak
-   jegyzet szint marad (pl. `last_seen_at` oszlop + soft-delete azokra a
-   repókra, amik egy sync után nem jönnek vissza a GitHub válaszban).
-
-Mivel a "Simple multitenancy" extrát a 0. pontban leírt globális
-katalógus + pivot tábla megoldás **nem** váltja ki automatikusan (sőt,
-kifejezetten ez ellen dönt a terv – l. a 0. pont "megfontolt, de
-elvetett alternatíva" jegyzetét), ez a pont is nyitva marad, ha marad
-rá idő: a pivot tábla már megvan hozzá, "csak" a felületen kellene
-explicit módon megjeleníteni/kezelni, hogy egy target hány userhez van
-hozzárendelve.
-
----
-
-## 11. Dokumentáció a leadáshoz
+## 10. Dokumentáció a leadáshoz
 
 - `AI_USAGE.md` – AI eszközök, promptok, mit generált AI, mit
   változtattunk/dobtunk el, hogyan validáltuk (tesztekkel, manuális
@@ -524,6 +500,76 @@ hozzárendelve.
   részek, következő lépések, kompromisszumok.
 - Ezeket a munka **végén** töltjük ki véglegesen, de érdemes a fejlesztés
   közben folyamatosan jegyzetelni, hogy ne a végén kelljen visszaemlékezni.
+
+---
+
+## 11. Lépésenkénti végrehajtási terv (checklist)
+
+A fenti pontok megvalósítási sorrendje és egy "kész, ha..." kritérium
+lépésenként, hogy AI-jal egyenként, ellenőrizhető adagokban lehessen
+végigvinni. Minden lépés után: a hozzá tartozó teszt megírása/zöldre
+futtatása, majd `pint` + `phpstan` (Larastan) futtatása, mielőtt a
+következő lépésre mennénk.
+
+1. **Migrációk + modellek + enumok** (l. 1. pont) –
+   `create_sync_targets_table`, `create_sync_target_user_table`,
+   `create_repositories_table`, `SyncTarget`, `GithubRepository`,
+   `SyncTargetType`, `SyncStatus` enumok, `SyncTargetFactory`,
+   `GithubRepositoryFactory`.
+   *Kész, ha:* `php artisan migrate:fresh` hibátlanul lefut, és a
+   factory-kkal létrehozott rekordok mentése/relációi (`users()`,
+   `repositories()`, `syncTarget()`) tinker/teszt szinten működnek.
+
+2. **Adatelérési réteg** (l. 2. pont) – interfészek,
+   `EloquentSyncTargetRepository`, `EloquentGithubRepositoryRepository`,
+   `RepositoryServiceProvider` binding.
+   *Kész, ha:* egy gyors unit teszt mock interfésszel lefut, és a
+   `markAsSyncing()` atomi update logikáját lefedő teszt zöld (két
+   egymás utáni hívás közül csak az első ad `true`-t).
+
+3. **GitHub kliens + DTO + config** (l. 3. pont) – `GitHubClient`,
+   `GitHubRepositoryData` DTO, `config/services.php`, `.env.example`
+   `GITHUB_TOKEN` bejegyzés, dedikált exception osztályok.
+   *Kész, ha:* `Http::fake()`-es teszt igazolja, hogy a kliens helyesen
+   hívja a `/users/{user}/repos` vagy `/orgs/{org}/repos` végpontot, és
+   a 404/403/5xx válaszokra a megfelelő exception dobódik.
+
+4. **`RepositorySynchronizer`** (l. 4. pont) – DTO-k mentése
+   `upsertMany()`-n keresztül, `markAsSynced`/`markAsFailed`,
+   tranzakció-határ.
+   *Kész, ha:* a 9. pont 2. és 3. baseline tesztje (sikeres szinkron +
+   duplikátum-mentes upsert) zöld.
+
+5. **`SyncRepositoriesJob`** (l. 5. pont) – dispatch, `syncing` állapot
+   kezelése, hiba esetén `markAsFailed`.
+   *Kész, ha:* `Queue::fake()`-es teszt igazolja, hogy a job
+   dispatchelődik, és egy sikertelen GitHub hívás esetén a target
+   `failed` állapotba kerül a hibaüzenettel.
+
+6. **Route-ok, Request, Policy, Controllerek** (l. 6. pont) –
+   `StoreSyncTargetRequest`, `SyncTargetPolicy`,
+   `SyncTargetController`, `SyncTargetSyncController`, `routes/web.php`.
+   *Kész, ha:* `php artisan route:list` mutatja az új route-okat, és egy
+   feature teszt igazolja a 403-at idegen target elérésekor, illetve a
+   duplikált sync-indítás elutasítását.
+
+7. **Vue oldalak** (l. 7. pont) – `SyncTargets/Index.vue`,
+   `SyncTargets/Show.vue`, sidebar menüpont, Wayfinder route hívások.
+   *Kész, ha:* manuálisan kipróbálva (böngészőben) végigvihető a teljes
+   flow: target hozzáadása → sync indítása → repólista megjelenik
+   kereséssel/rendezéssel.
+
+8. **Hibakezelés/logging finomítás** (l. 8. pont) – ha bármelyik
+   korábbi lépésben csak jegyzet szinten maradt.
+   *Kész, ha:* egy szándékosan hibás GitHub hívás (pl. nem létező user)
+   végigfut a UI-ig, és a felhasználó a `last_sync_error` szöveget
+   látja, nem nyers exceptiont.
+
+9. **Placeholder tesztek pontosítása** (l. 9. pont) – a README-ben
+   javasolt lista alapján névvel ellátott `test()->todo()` bejegyzések.
+
+10. **`AI_USAGE.md` + NOTES** (l. 10. pont) – a leadás előtti utolsó
+    lépés, de érdemes a fenti lépések közben folyamatosan jegyzetelni.
 
 ---
 
