@@ -33,6 +33,14 @@ class EloquentSyncTargetRepository implements SyncTargetRepositoryInterface
         return $target;
     }
 
+    public function userHasTarget(User $user, string $name, SyncTargetType $type): bool
+    {
+        return $user->syncTargets()
+            ->where('name', $name)
+            ->where('type', $type)
+            ->exists();
+    }
+
     public function markAsSyncing(SyncTarget $target): bool
     {
         $updated = SyncTarget::query()

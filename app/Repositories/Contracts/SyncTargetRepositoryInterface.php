@@ -29,6 +29,12 @@ interface SyncTargetRepositoryInterface
     public function findOrCreateAndAttachToUser(User $user, string $name, SyncTargetType $type): SyncTarget;
 
     /**
+     * Determine whether the given user already follows the target with the
+     * given (name, type).
+     */
+    public function userHasTarget(User $user, string $name, SyncTargetType $type): bool;
+
+    /**
      * Atomically mark the target as syncing, unless it already is.
      *
      * Returns true if this call transitioned the target into the syncing

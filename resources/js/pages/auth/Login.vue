@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
+import { register } from '@/routes';
 
 defineOptions({
     layout: {
@@ -96,6 +97,11 @@ defineProps<{
                 <Spinner v-if="processing" />
                 Log in
             </Button>
+        </div>
+
+        <div class="space-x-1 text-center text-sm text-muted-foreground">
+            <span>Don't have an account?</span>
+            <TextLink :href="register()" :tabindex="6">Sign up</TextLink>
         </div>
     </Form>
 </template>

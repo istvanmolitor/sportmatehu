@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\SyncTargetType;
+use App\Repositories\Contracts\SyncTargetRepositoryInterface;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -21,23 +22,25 @@ class StoreSyncTargetRequest extends FormRequest
             'type' => ['required', Rule::enum(SyncTargetType::class)],
         ];
     }
-
-    /**
-     * The uniqueness requirement here is scoped to the authenticated user:
-     * the global sync target may already exist (added by someone else), but
-     * the current user must not have already added it to their own list.
-     */
-    public function withValidator(Validator $validator): void
+    
+    public function after(SyncTargetRepositoryInterface $syncTargets): array
     {
-        $validator->after(function (Validator $validator) {
-            $alreadyAdded = $this->user()->syncTargets()
-                ->where('name', $this->input('name'))
-                ->where('type', $this->input('type'))
-                ->exists();
+        return [
+            function (Validator $validator) use ($syncTargets) {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
 
-            if ($alreadyAdded) {
-                $validator->errors()->add('name', __('You have already added this GitHub user or organization.'));
-            }
-        });
+                $alreadyAdded = $syncTargets->userHasTarget(
+                    $this->user(),
+                    $this->string('name')->toString(),
+                    $this->enum('type', SyncTargetType::class),
+                );
+
+                if ($alreadyAdded) {
+                    $validator->errors()->add('name', __('Ezt a GitHub felhasználót vagy szervezetet már hozzáadtad.'));
+                }
+            },
+        ];
     }
 }
