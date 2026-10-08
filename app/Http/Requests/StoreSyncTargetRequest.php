@@ -22,7 +22,7 @@ class StoreSyncTargetRequest extends FormRequest
             'type' => ['required', Rule::enum(SyncTargetType::class)],
         ];
     }
-    
+
     public function after(SyncTargetRepositoryInterface $syncTargets): array
     {
         return [
