@@ -180,7 +180,12 @@ const statusVariants: Record<
                             >
                                 Szinkronizálás indítása
                             </Button>
-                            <Button v-else size="sm" variant="outline" :as-child="true">
+                            <Button
+                                v-else
+                                size="sm"
+                                variant="outline"
+                                :as-child="true"
+                            >
                                 <Link :href="sync(target.id).url" method="post">
                                     Szinkronizálás indítása
                                 </Link>
