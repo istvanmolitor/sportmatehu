@@ -13,7 +13,6 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
 import { index as syncTargetsIndex } from '@/routes/sync-targets';
 import type { NavItem } from '@/types';
 
@@ -32,7 +31,7 @@ const mainNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="syncTargetsIndex()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>

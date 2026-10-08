@@ -4,11 +4,13 @@ use App\Http\Controllers\SyncTargetController;
 use App\Http\Controllers\SyncTargetSyncController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('sync-targets.index')
+        : redirect()->route('login');
+})->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-
     Route::get('sync-targets', [SyncTargetController::class, 'index'])->name('sync-targets.index');
     Route::post('sync-targets', [SyncTargetController::class, 'store'])->name('sync-targets.store');
     Route::get('sync-targets/{syncTarget}', [SyncTargetController::class, 'show'])->name('sync-targets.show');
