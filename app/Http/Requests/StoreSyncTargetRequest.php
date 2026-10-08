@@ -23,6 +23,9 @@ class StoreSyncTargetRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<int, callable>
+     */
     public function after(SyncTargetRepositoryInterface $syncTargets): array
     {
         return [
