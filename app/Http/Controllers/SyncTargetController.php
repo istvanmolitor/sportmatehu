@@ -57,22 +57,17 @@ class SyncTargetController extends Controller
     {
         $this->authorize('view', $syncTarget);
 
-        $repositories = $this->repositories->paginateForTarget(
-            $syncTarget,
-            $request->only(['search', 'language', 'sort', 'direction']),
-        );
-
-        $languages = $syncTarget->repositories()
-            ->whereNotNull('language')
-            ->distinct()
-            ->orderBy('language')
-            ->pluck('language');
+        $filters = $request->only(['search', 'language', 'sort', 'direction']);
 
         return Inertia::render('SyncTargets/Show', [
             'syncTarget' => $this->presentTarget($syncTarget),
-            'repositories' => $repositories,
-            'languages' => $languages,
-            'filters' => $request->only(['search', 'language', 'sort', 'direction']),
+            'repositories' => fn () => $this->repositories->paginateForTarget($syncTarget, $filters),
+            'languages' => fn () => $syncTarget->repositories()
+                ->whereNotNull('language')
+                ->distinct()
+                ->orderBy('language')
+                ->pluck('language'),
+            'filters' => $filters,
         ]);
     }
 

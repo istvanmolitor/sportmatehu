@@ -5,6 +5,7 @@ use App\Enums\SyncTargetType;
 use App\Jobs\SyncRepositoriesJob;
 use App\Models\SyncTarget;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 
 test('guests are redirected to the login page', function () {
@@ -70,6 +71,33 @@ test('a user can view a sync target they have added', function () {
     $user->syncTargets()->attach($target);
 
     $this->actingAs($user)->get(route('sync-targets.show', $target))->assertOk();
+});
+
+test('polling a sync target only loads its status without querying repositories', function () {
+    $user = User::factory()->create();
+    $target = SyncTarget::factory()->create();
+    $user->syncTargets()->attach($target);
+
+    $version = $this->actingAs($user)->get(route('sync-targets.show', $target))->inertiaPage()['version'];
+
+    DB::enableQueryLog();
+
+    $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => $version,
+        'X-Inertia-Partial-Component' => 'SyncTargets/Show',
+        'X-Inertia-Partial-Data' => 'syncTarget',
+    ])
+        ->get(route('sync-targets.show', $target))
+        ->assertOk()
+        ->assertJsonStructure(['props' => ['syncTarget']])
+        ->assertJsonMissingPath('props.repositories')
+        ->assertJsonMissingPath('props.languages');
+
+    $repositoryQueries = collect(DB::getQueryLog())
+        ->filter(fn (array $query) => str_contains($query['query'], 'repositories'));
+
+    expect($repositoryQueries)->toBeEmpty();
 });
 
 test('starting a sync dispatches the job and rejects a second concurrent request', function () {
